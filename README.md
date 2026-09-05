@@ -10,6 +10,7 @@ For each **server** connected to your Komodo instance, a device is created conta
 - A **button entity** to deploy the stack.
 - A **switch entity per service** — reflecting the current running state and allowing you to start or stop each service directly from Home Assistant.
 - An **update entity per service** — so you can track and trigger image updates from your dashboard.
+- **Per-service container stats** — CPU usage, memory usage, memory used, network ingress/egress and process count sensors for each running service container, refreshed every 60 seconds.
 
 This gives you full visibility and basic control over your Komodo-managed infrastructure, all from within Home Assistant.
 
@@ -63,7 +64,7 @@ HACS (Home Assistant Community Store) makes installation and updates simple. Sin
 
 ## Devices & Entities
 
-Once configured, the integration creates one device per server and one device per stack found in your Komodo instance.
+Once configured, the integration creates one device per server and one device per stack found in your Komodo instance. Metrics are refreshed every 60 seconds.
 
 ### Server Device
 
@@ -86,6 +87,14 @@ Each stack gets its own device with entities for every service it contains:
 | Deploy `<Stack Name>` stack | Button | Deploys the stack |
 | `<Service Name>` | Switch | Reflects the running state of the service; toggle to start or stop it |
 | `<Service Name>` Update | Update | Tracks available image updates and allows triggering them |
+| `<Service Name>` CPU Usage | Sensor | Current CPU usage of the service container (%) |
+| `<Service Name>` Memory Usage | Sensor | Current memory usage of the service container (%) |
+| `<Service Name>` Memory Used | Sensor | Memory used by the service container (bytes) |
+| `<Service Name>` Network Ingress | Sensor | Cumulative network bytes received by the container |
+| `<Service Name>` Network Egress | Sensor | Cumulative network bytes sent by the container |
+| `<Service Name>` PIDs | Sensor | Number of processes running in the container |
+
+Note: container stat sensors only report values while the service container is running; stopped services report `unknown`.
 
 
 ## Disclaimer
