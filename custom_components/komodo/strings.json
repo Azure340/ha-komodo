@@ -40,6 +40,24 @@
       },
       "service_count": {
         "name": "Service Count"
+      },
+      "cpu_usage": {
+        "name": "CPU Usage"
+      },
+      "memory_usage": {
+        "name": "Memory Usage"
+      },
+      "memory_used": {
+        "name": "Memory Used"
+      },
+      "network_rx": {
+        "name": "Network Ingress"
+      },
+      "network_tx": {
+        "name": "Network Egress"
+      },
+      "pids": {
+        "name": "PIDs"
       }
     },
     "binary_sensor": {

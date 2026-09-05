@@ -1,7 +1,31 @@
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+
 from ..coordinator import KomodoCoordinator
-from .common import KomodoSensor, KomodoOptionSensor, KomodoEntity
+from .common import KomodoSensor, KomodoOptionSensor, KomodoStatSensor
 from komodo_api.types import StackState
 from ..utils import create_stack_device_info
+
+
+# (translation key, service attribute, display label, device class, unit, icon)
+_STAT_SENSORS = (
+    ("cpu_usage", "cpu_perc", "CPU Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:cpu-64-bit"),
+    ("memory_usage", "mem_perc", "Memory Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:memory"),
+    ("memory_used", "mem_used_bytes", "Memory Used", SensorDeviceClass.DATA_SIZE, "B", "mdi:memory"),
+    ("network_rx", "net_rx_bytes", "Network Ingress", SensorDeviceClass.DATA_SIZE, "B", "mdi:arrow-down-bold"),
+    ("network_tx", "net_tx_bytes", "Network Egress", SensorDeviceClass.DATA_SIZE, "B", "mdi:arrow-up-bold"),
+    ("pids", "pids", "PIDs", None, None, "mdi:run-fast"),
+)
+
+
+def _make_stat_extractor(stack_id: str, service_name: str, attr: str):
+    """Create an extractor for one stat attribute of one service."""
+    def extractor(data, sid=stack_id, sname=service_name, a=attr):
+        stack = data.get_stack(sid)
+        service = stack.services.get(sname)
+        if service is None:
+            return None
+        return getattr(service, a, None)
+    return extractor
 
 
 def create_stack_sensors(
@@ -48,5 +72,25 @@ def create_stack_sensors(
                 device_info=device_info,
             )
         )
+
+        # Per-service container stat sensors (Option B).
+        for service in stack.services.values():
+            for key, attr, label, dev_class, unit, icon in _STAT_SENSORS:
+                sensors.append(
+                    KomodoStatSensor(
+                        coordinator=coordinator,
+                        item_id=f"{entry_id}_{stack.id}_{service.name}",
+                        extractor=_make_stat_extractor(
+                            stack.id, service.name, attr
+                        ),
+                        key=key,
+                        device_info=device_info,
+                        name=f"{service.name} {label}",
+                        device_class=dev_class,
+                        unit_of_measurement=unit,
+                        state_class=SensorStateClass.MEASUREMENT,
+                        icon=icon,
+                    )
+                )
 
     return sensors

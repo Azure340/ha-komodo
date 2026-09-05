@@ -68,3 +68,18 @@ class KomodoData:
                 self.get_server(alert.target.id).add_alert(alert)
             elif isinstance(alert.target, ResourceTargetStack):
                 self.get_stack(alert.target.id).add_alert(alert)
+
+    def attach_stack_services(self, services) -> None:
+        """Attach per-service container details/stats from listAllStackServices.
+
+        Services are matched to the already-known stack services by
+        (stack_id, service name). Unknown stacks/services are skipped.
+        """
+        for service in services:
+            stack = self.stacks.get(getattr(service, "stack_id", ""))
+            if stack is None:
+                continue
+            komodo_service = stack.services.get(getattr(service, "service", ""))
+            if komodo_service is None:
+                continue
+            komodo_service.apply_stack_service(service)

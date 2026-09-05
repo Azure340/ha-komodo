@@ -37,6 +37,24 @@
             },
             "service_count": {
                 "name": "Dienst Anzahl"
+            },
+            "cpu_usage": {
+                "name": "CPU Auslastung"
+            },
+            "memory_usage": {
+                "name": "Speichernutzung"
+            },
+            "memory_used": {
+                "name": "Speicher belegt"
+            },
+            "network_rx": {
+                "name": "Netzwerk eingehend"
+            },
+            "network_tx": {
+                "name": "Netzwerk ausgehend"
+            },
+            "pids": {
+                "name": "PIDs"
             }
         },
         "switch": {

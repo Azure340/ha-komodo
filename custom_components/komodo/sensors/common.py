@@ -119,3 +119,39 @@ class KomodoOptionSensor(KomodoSensor):
             key=key,
             device_info=device_info,
         )
+
+
+class KomodoStatSensor(KomodoSensor):
+    """Sensor with device class/unit/state class, used for container stats."""
+
+    def __init__(
+        self,
+        item_id,
+        coordinator,
+        extractor,
+        key: str,
+        device_info,
+        name: str,
+        device_class=None,
+        unit_of_measurement=None,
+        state_class=None,
+        icon=None,
+    ) -> None:
+        """Initialize the stat sensor."""
+        super().__init__(
+            item_id=item_id,
+            coordinator=coordinator,
+            extractor=extractor,
+            key=key,
+            device_info=device_info,
+        )
+        self._attr_has_entity_name = False
+        self._attr_name = name
+        if device_class is not None:
+            self._attr_device_class = device_class
+        if unit_of_measurement is not None:
+            self._attr_native_unit_of_measurement = unit_of_measurement
+        if state_class is not None:
+            self._attr_state_class = state_class
+        if icon is not None:
+            self._attr_icon = icon

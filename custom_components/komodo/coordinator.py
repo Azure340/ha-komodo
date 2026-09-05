@@ -32,6 +32,15 @@ from .data.service import KomodoService, KomodoUpdateInfo
 
 _LOGGER = logging.getLogger(__name__)
 
+try:
+    from komodo_api.types import ListAllStackServices
+except ImportError:  # pragma: no cover - older komodo-api package
+    ListAllStackServices = None
+    _LOGGER.warning(
+        "komodo-api is too old for ListAllStackServices; "
+        "per-container stats sensors will be unavailable. "
+        "Upgrade komodo-api to a 2.2.0b3+ build.")
+
 # Substring of the error Komodo core returns when a stack has no container for
 # the service (see bin/core/src/api/read/stack.rs). The core sends it with the
 # default HTTP 500, so the message text is the only way to tell it apart from a
@@ -49,7 +58,7 @@ class KomodoCoordinator(DataUpdateCoordinator[KomodoData]):
             _LOGGER,
             # Name of the data. For logging purposes.
             name="KomodoData",
-            update_interval=timedelta(minutes=5),
+            update_interval=timedelta(seconds=60),
         )
         self.my_api = my_api
         self._service_timestamps: dict[tuple[str, str], float] = {}
@@ -72,10 +81,18 @@ class KomodoCoordinator(DataUpdateCoordinator[KomodoData]):
                     )
                 ),
             ]
+            if ListAllStackServices is not None:
+                tasks.append(
+                    self.my_api.read.listAllStackServices(ListAllStackServices())
+                )
+            else:  # pragma: no cover - older komodo-api package
+                tasks.append(asyncio.sleep(0, result=None))
+
             responses = await asyncio.gather(*tasks, return_exceptions=True)
             _LOGGER.debug("Server response: %s", responses[0])
             _LOGGER.debug("Stack response: %s", responses[1])
             _LOGGER.debug("Alert response: %s", responses[2])
+            _LOGGER.debug("Stack service response: %s", responses[3])
             data = KomodoData()
 
             # Servers
@@ -96,6 +113,16 @@ class KomodoCoordinator(DataUpdateCoordinator[KomodoData]):
             else:
                 # TODO we currently only fetch the first page of alerts
                 data.add_alerts(responses[2])
+
+            # Stack service stats (per-container metrics for Option B)
+            if responses[3] is None:
+                pass  # stat polling unavailable on this komodo-api build
+            elif isinstance(responses[3], Exception):
+                _LOGGER.error(
+                    "Error fetching stack service stats", exc_info=responses[3]
+                )
+            else:
+                data.attach_stack_services(responses[3])
 
         await self._compute_update_info(data)
         await self._fetch_service_states(data)
