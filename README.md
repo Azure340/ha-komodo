@@ -26,8 +26,9 @@ integration:
   - Network Egress (cumulative bytes sent)
   - PIDs (process count)
 
-  Stats are fetched from Komodo's `listAllStackServices` API and computed
-  from the Docker `ContainerStats` payload.
+  Stats are fetched from Komodo's per-stack `listStackServices` API (also
+  compatible with the `listAllStackServices` endpoint on newer Komodo builds)
+  and computed from the container stats payload.
 
 - **Faster polling** — the data coordinator now refreshes every **60 seconds**
   instead of the upstream 5 minutes.

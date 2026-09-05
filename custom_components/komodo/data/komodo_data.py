@@ -69,16 +69,17 @@ class KomodoData:
             elif isinstance(alert.target, ResourceTargetStack):
                 self.get_stack(alert.target.id).add_alert(alert)
 
-    def attach_stack_services(self, services) -> None:
-        """Attach per-service container details/stats from listAllStackServices.
+    def attach_stack_services(self, stack_id: str, services) -> None:
+        """Attach per-service container details/stats from listStackServices.
 
-        Services are matched to the already-known stack services by
-        (stack_id, service name). Unknown stacks/services are skipped.
+        ``services`` is the ListStackServices response for ``stack_id``. On
+        komodo-api 2.2.0b3 StackService has no ``stack_id`` field, so the
+        target stack is passed explicitly rather than read from each item.
         """
+        stack = self.stacks.get(stack_id)
+        if stack is None:
+            return
         for service in services:
-            stack = self.stacks.get(getattr(service, "stack_id", ""))
-            if stack is None:
-                continue
             komodo_service = stack.services.get(getattr(service, "service", ""))
             if komodo_service is None:
                 continue
