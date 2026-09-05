@@ -37,7 +37,7 @@ class KomodoService:
     state: ContainerStateStatusEnum | None
     update_info: KomodoUpdateInfo | None
 
-    # Per-container stats, attached from listAllStackServices.
+    # Per-container stats, attached from listStackServices.
     container_id: str | None
     container_name: str | None
     cpu_perc: float | None
