@@ -60,6 +60,26 @@ def _parse_percent(text: str | None) -> float | None:
         return None
 
 
+def human_size(raw: int | float | None) -> tuple[int | float | None, str | None]:
+    """Return (value, unit) for readable memory/disk/network display.
+
+    - Below 1 MiB  -> raw bytes (unit "B")
+    - 1 MiB .. <1 GiB -> MB (1024-based)
+    - >= 1 GiB        -> GB (1024-based)
+    """
+    if raw is None:
+        return None, None
+    try:
+        raw = float(raw)
+    except (TypeError, ValueError):
+        return None, None
+    if raw >= 1024 ** 3:
+        return round(raw / (1024 ** 3), 2), "GB"
+    if raw >= 1024 ** 2:
+        return round(raw / (1024 ** 2), 1), "MB"
+    return int(raw), "B"
+
+
 def _extract_string_stats(stats: Any) -> dict[str, int | float | None]:
     """Extract metrics from the string-format ``ContainerStats`` (komodo-api 2.2)."""
     out: dict[str, int | float | None] = {

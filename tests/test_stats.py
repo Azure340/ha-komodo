@@ -2,7 +2,7 @@
 
 from types import SimpleNamespace
 
-from custom_components.komodo.data.stats import extract_container_stats
+from custom_components.komodo.data.stats import extract_container_stats, human_size
 
 
 def _ns(**kwargs):
@@ -80,3 +80,12 @@ def test_zero_cpu_delta_yields_none():
     stats.precpu_stats.system_cpu_usage = 100000  # equal deltas -> div-by-zero guard
     out = extract_container_stats(stats)
     assert out["cpu_perc"] is None
+
+
+def test_human_size():
+    assert human_size(None) == (None, None)
+    assert human_size(500) == (500, "B")
+    assert human_size(1024 * 1024) == (1.0, "MB")
+    assert human_size(5 * 1024 * 1024) == (5.0, "MB")
+    assert human_size(1024 ** 3) == (1.0, "GB")
+    assert human_size(round(1.5 * 1024 ** 3)) == (1.5, "GB")

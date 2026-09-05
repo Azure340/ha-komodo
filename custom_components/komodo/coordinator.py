@@ -18,6 +18,7 @@ from komodo_api.types import (
     ListStacks,
     ListAlerts,
     ListStackServices,
+    GetSystemStats,
     ServerListItem,
     StackListItem,
     StackService,
@@ -115,6 +116,25 @@ class KomodoCoordinator(DataUpdateCoordinator[KomodoData]):
                     )
                 else:
                     data.attach_stack_services(stack_id, response)
+
+            # Server resource stats (from core's cached SystemStats).
+            server_stats = await asyncio.gather(
+                *(
+                    self.my_api.read.getSystemStats(
+                        GetSystemStats(server=sid)
+                    )
+                    for sid in data.servers
+                ),
+                return_exceptions=True,
+            )
+            for sid, response in zip(data.servers, server_stats):
+                if isinstance(response, Exception):
+                    _LOGGER.error(
+                        "Error fetching stats for server %s", sid,
+                        exc_info=response,
+                    )
+                else:
+                    data.servers[sid].apply_system_stats(response)
 
         await self._compute_update_info(data)
         await self._fetch_service_states(data)

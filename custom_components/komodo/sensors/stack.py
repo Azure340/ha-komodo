@@ -1,19 +1,20 @@
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
 from ..coordinator import KomodoCoordinator
+from ..data.stats import human_size
 from .common import KomodoSensor, KomodoOptionSensor, KomodoStatSensor
 from komodo_api.types import StackState
 from ..utils import create_stack_device_info
 
 
-# (translation key, service attribute, display label, device class, unit, icon)
+# (translation key, service attribute, display label, device class, unit, icon, formatter)
 _STAT_SENSORS = (
-    ("cpu_usage", "cpu_perc", "CPU Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:cpu-64-bit"),
-    ("memory_usage", "mem_perc", "Memory Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:memory"),
-    ("memory_used", "mem_used_bytes", "Memory Used", SensorDeviceClass.DATA_SIZE, "B", "mdi:memory"),
-    ("network_rx", "net_rx_bytes", "Network Ingress", SensorDeviceClass.DATA_SIZE, "B", "mdi:arrow-down-bold"),
-    ("network_tx", "net_tx_bytes", "Network Egress", SensorDeviceClass.DATA_SIZE, "B", "mdi:arrow-up-bold"),
-    ("pids", "pids", "PIDs", None, None, "mdi:run-fast"),
+    ("cpu_usage", "cpu_perc", "CPU Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:cpu-64-bit", None),
+    ("memory_usage", "mem_perc", "Memory Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:memory", None),
+    ("memory_used", "mem_used_bytes", "Memory Used", SensorDeviceClass.DATA_SIZE, None, "mdi:memory", human_size),
+    ("network_rx", "net_rx_bytes", "Network Ingress", SensorDeviceClass.DATA_SIZE, None, "mdi:arrow-down-bold", human_size),
+    ("network_tx", "net_tx_bytes", "Network Egress", SensorDeviceClass.DATA_SIZE, None, "mdi:arrow-up-bold", human_size),
+    ("pids", "pids", "PIDs", None, None, "mdi:run-fast", None),
 )
 
 
@@ -75,7 +76,7 @@ def create_stack_sensors(
 
         # Per-service container stat sensors (Option B).
         for service in stack.services.values():
-            for key, attr, label, dev_class, unit, icon in _STAT_SENSORS:
+            for key, attr, label, dev_class, unit, icon, formatter in _STAT_SENSORS:
                 sensors.append(
                     KomodoStatSensor(
                         coordinator=coordinator,
@@ -90,6 +91,7 @@ def create_stack_sensors(
                         unit_of_measurement=unit,
                         state_class=SensorStateClass.MEASUREMENT,
                         icon=icon,
+                        formatter=formatter,
                     )
                 )
 

@@ -55,6 +55,42 @@
             },
             "pids": {
                 "name": "PIDs"
+            },
+            "server_cpu_usage": {
+                "name": "CPU Auslastung"
+            },
+            "server_load_1m": {
+                "name": "CPU Last 1m"
+            },
+            "server_load_5m": {
+                "name": "CPU Last 5m"
+            },
+            "server_load_15m": {
+                "name": "CPU Last 15m"
+            },
+            "server_memory_usage": {
+                "name": "Speichernutzung"
+            },
+            "server_memory_used": {
+                "name": "Speicher belegt"
+            },
+            "server_memory_total": {
+                "name": "Speicher gesamt"
+            },
+            "server_disk_usage": {
+                "name": "Festplattennutzung"
+            },
+            "server_disk_used": {
+                "name": "Festplatte belegt"
+            },
+            "server_disk_total": {
+                "name": "Festplatte gesamt"
+            },
+            "server_network_ingress": {
+                "name": "Netzwerk eingehend"
+            },
+            "server_network_egress": {
+                "name": "Netzwerk ausgehend"
             }
         },
         "switch": {
