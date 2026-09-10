@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 
 from komodo_api.types import (
@@ -11,11 +12,43 @@ from komodo_api.types import (
 from .stats import extract_container_stats
 
 
+_GHCR_RE = re.compile(r"^ghcr\.io/([^/:@]+)/([^/:@]+)")
+_DOCKER_HUB_RE = re.compile(r"^(?:docker\.io/)?([^/:@]+)/([^/:@]+)")
+_OFFICIAL_RE = re.compile(r"^([^/:@]+)$")
+
+
+def derive_release_url(image: str | None) -> str | None:
+    """Best-effort release / browse URL from an image reference.
+
+    - ``ghcr.io/{owner}/{repo}``  -> ``https://github.com/{owner}/{repo}/releases``
+    - ``{owner}/{repo}``          -> ``https://hub.docker.com/r/{owner}/{repo}``
+    - official ``{name}`` images  -> ``https://hub.docker.com/_/{name}``
+
+    Pinned digests (``@sha256:...``) and tags are stripped before matching.
+    A registry ``host:port`` is kept intact so ``localhost:5000/x/y`` does not
+    match anything. Returns ``None`` when no URL can be derived.
+    """
+    if not image:
+        return None
+    image = image.split("@")[0]  # drop any pinned digest
+    # Drop a tag (e.g. :latest, :0.18.0-rc1) but keep a registry host:port.
+    if ":" in image and "/" not in image.rsplit(":", 1)[1]:
+        image = image.rsplit(":", 1)[0]
+    if m := _GHCR_RE.match(image):
+        return f"https://github.com/{m.group(1)}/{m.group(2)}/releases"
+    if m := _DOCKER_HUB_RE.match(image):
+        return f"https://hub.docker.com/r/{m.group(1)}/{m.group(2)}"
+    if m := _OFFICIAL_RE.match(image):
+        return f"https://hub.docker.com/_/{m.group(1)}"
+    return None
+
+
 class KomodoUpdateInfo:
     """Update information for a service."""
 
     current_version: str
     new_version: str
+    release_url: str | None
     info_updated_at: float
 
     def __init__(self, info: InspectStackContainerResponse, updated_at: float):
@@ -25,6 +58,16 @@ class KomodoUpdateInfo:
             )
         else:
             self.current_version = "0"
+        # Prefer an explicit OCI source label; otherwise derive a URL from
+        # the image reference (ghcr.io -> GitHub releases, else Docker Hub).
+        self.release_url = None
+        if info.config:
+            if info.config.labels:
+                self.release_url = info.config.labels.get(
+                    "org.opencontainers.image.source"
+                )
+            if not self.release_url:
+                self.release_url = derive_release_url(info.config.image)
         self.new_version = "update available"
         self.info_updated_at = updated_at
 
