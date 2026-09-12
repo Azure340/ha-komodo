@@ -51,6 +51,26 @@ def _disk_perc(server_id: str):
     return extractor
 
 
+def _mem_free_bytes(server_id: str):
+    """Extractor for free memory in bytes (total - used)."""
+    def extractor(data, sid=server_id):
+        srv = data.get_server(sid)
+        if srv is None or srv.mem_total_gb is None or srv.mem_used_gb is None:
+            return None
+        return (srv.mem_total_gb - srv.mem_used_gb) * _GIB
+    return extractor
+
+
+def _disk_free_bytes(server_id: str):
+    """Extractor for free disk space in bytes (total - used)."""
+    def extractor(data, sid=server_id):
+        srv = data.get_server(sid)
+        if srv is None or srv.disk_total_gb is None or srv.disk_used_gb is None:
+            return None
+        return (srv.disk_total_gb - srv.disk_used_gb) * _GIB
+    return extractor
+
+
 def create_server_sensors(
     coordinator: KomodoCoordinator,
     entry_id: str,
@@ -236,6 +256,34 @@ def create_server_sensors(
                 key="server_disk_total",
                 device_info=device_info,
                 name="Disk Total",
+                device_class=SensorDeviceClass.DATA_SIZE,
+                state_class=SensorStateClass.MEASUREMENT,
+                icon="mdi:harddisk",
+                formatter=human_size,
+            )
+        )
+        sensors.append(
+            KomodoStatSensor(
+                coordinator=coordinator,
+                item_id=item_id,
+                extractor=_mem_free_bytes(server.id),
+                key="server_memory_free",
+                device_info=device_info,
+                name="Memory Free",
+                device_class=SensorDeviceClass.DATA_SIZE,
+                state_class=SensorStateClass.MEASUREMENT,
+                icon="mdi:memory",
+                formatter=human_size,
+            )
+        )
+        sensors.append(
+            KomodoStatSensor(
+                coordinator=coordinator,
+                item_id=item_id,
+                extractor=_disk_free_bytes(server.id),
+                key="server_disk_free",
+                device_info=device_info,
+                name="Disk Free",
                 device_class=SensorDeviceClass.DATA_SIZE,
                 state_class=SensorStateClass.MEASUREMENT,
                 icon="mdi:harddisk",
