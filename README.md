@@ -14,30 +14,63 @@ documentation, please refer to the **original repository**:
 
 ## What's different in this fork
 
-This fork adds per-container resource monitoring on top of the upstream
-integration:
+This fork is **upstream `dkarv/ha-komodo` v1.3.0-beta1** plus per-container
+monitoring and release links.
 
-- **Per-service container stat sensors** — every stack device gains six
-  sensors per service:
-  - CPU Usage (%)
-  - Memory Usage (%)
-  - Memory Used (bytes)
-  - Network Ingress (cumulative bytes received)
-  - Network Egress (cumulative bytes sent)
-  - PIDs (process count)
+### Per-container (per-service) stat sensors
 
-  Stats are fetched from Komodo's per-stack `listStackServices` API (also
-  compatible with the `listAllStackServices` endpoint on newer Komodo builds)
-  and computed from the container stats payload.
+Every stack device gains three stat sensors per running service container:
 
-- **Faster polling** — the data coordinator now refreshes every **60 seconds**
-  instead of the upstream 5 minutes.
+- CPU Usage (%)
+- Memory Usage (%)
+- Memory Used (MB)
 
-Everything else — server/stack devices, deploy buttons, per-service switches
-and update entities, config flow — matches upstream.
+Stopped containers report `unknown`.
 
-> Note: container stat sensors only report values while a service container is
-> running; stopped services report `unknown`.
+### Per-server stat sensors
+
+Every server device reports:
+
+- CPU Usage (%)
+- CPU Load 1m / 5m / 15m
+- Memory Usage (%), Memory Used, Memory Total, Memory Free
+- Disk Usage (%), Disk Used, Disk Total, Disk Free
+
+### Fixed units for stable statistics
+
+All memory and disk values use **fixed units** — container memory in MB, server
+memory and disk in GB — so Home Assistant's long-term statistics stay stable.
+The display unit can be changed per entity in Home Assistant, which converts the
+values for you.
+
+### Release links on update entities
+
+Update entities expose a clickable `release_url`. It is taken from the image's
+`org.opencontainers.image.source` label when present, and otherwise derived from
+the image reference (`ghcr.io` → GitHub releases, Docker Hub → hub page).
+
+Example, in a notification template:
+
+```jinja
+{{ state_attr('update.<stack>_<service>_update', 'release_url') }}
+```
+
+### Data refresh
+
+The data coordinator refreshes every **60 seconds**.
+
+### Inherited from upstream
+
+- Per-stack on/off switch
+- Per-service switch
+- Deploy button
+- Update entities
+- Full resource lists (no 30-item page limit)
+- `komodo-api` 2.3.3 (matches Komodo core 2.3.x)
+
+### Sync status
+
+Synced with upstream **v1.3.0-beta1** (2026-09-11).
 
 ---
 

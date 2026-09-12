@@ -1,31 +1,41 @@
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import UnitOfInformation
 
 from ..coordinator import KomodoCoordinator
-from ..data.stats import human_size
 from .common import KomodoSensor, KomodoOptionSensor, KomodoStatSensor
 from komodo_api.types import StackState
 from ..utils import create_stack_device_info
 
 
-# (translation key, service attribute, display label, device class, unit, icon, formatter)
+# (translation key, service attribute, display label, device class, unit, icon, scale)
+# ``scale`` converts the stored value into the sensor's fixed unit
+# (bytes -> MB is 1 / 1024 ** 2). Units are fixed, never computed per update.
 _STAT_SENSORS = (
-    ("cpu_usage", "cpu_perc", "CPU Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:cpu-64-bit", None),
-    ("memory_usage", "mem_perc", "Memory Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:memory", None),
-    ("memory_used", "mem_used_bytes", "Memory Used", SensorDeviceClass.DATA_SIZE, None, "mdi:memory", human_size),
-    ("network_rx", "net_rx_bytes", "Network Ingress", SensorDeviceClass.DATA_SIZE, None, "mdi:arrow-down-bold", human_size),
-    ("network_tx", "net_tx_bytes", "Network Egress", SensorDeviceClass.DATA_SIZE, None, "mdi:arrow-up-bold", human_size),
-    ("pids", "pids", "PIDs", None, None, "mdi:run-fast", None),
+    ("cpu_usage", "cpu_perc", "CPU Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:cpu-64-bit", 1.0),
+    ("memory_usage", "mem_perc", "Memory Usage", SensorDeviceClass.POWER_FACTOR, "%", "mdi:memory", 1.0),
+    (
+        "memory_used",
+        "mem_used_bytes",
+        "Memory Used",
+        SensorDeviceClass.DATA_SIZE,
+        UnitOfInformation.MEGABYTES,
+        "mdi:memory",
+        1 / 1024 ** 2,
+    ),
 )
 
 
-def _make_stat_extractor(stack_id: str, service_name: str, attr: str):
+def _make_stat_extractor(stack_id: str, service_name: str, attr: str, scale: float = 1.0):
     """Create an extractor for one stat attribute of one service."""
-    def extractor(data, sid=stack_id, sname=service_name, a=attr):
+    def extractor(data, sid=stack_id, sname=service_name, a=attr, s=scale):
         stack = data.get_stack(sid)
         service = stack.services.get(sname)
         if service is None:
             return None
-        return getattr(service, a, None)
+        value = getattr(service, a, None)
+        if value is None:
+            return None
+        return value * s
     return extractor
 
 
@@ -76,13 +86,13 @@ def create_stack_sensors(
 
         # Per-service container stat sensors (Option B).
         for service in stack.services.values():
-            for key, attr, label, dev_class, unit, icon, formatter in _STAT_SENSORS:
+            for key, attr, label, dev_class, unit, icon, scale in _STAT_SENSORS:
                 sensors.append(
                     KomodoStatSensor(
                         coordinator=coordinator,
                         item_id=f"{entry_id}_{stack.id}_{service.name}",
                         extractor=_make_stat_extractor(
-                            stack.id, service.name, attr
+                            stack.id, service.name, attr, scale
                         ),
                         key=key,
                         device_info=device_info,
@@ -91,7 +101,6 @@ def create_stack_sensors(
                         unit_of_measurement=unit,
                         state_class=SensorStateClass.MEASUREMENT,
                         icon=icon,
-                        formatter=formatter,
                     )
                 )
 

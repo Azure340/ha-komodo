@@ -122,7 +122,7 @@ class KomodoOptionSensor(KomodoSensor):
 
 
 class KomodoStatSensor(KomodoSensor):
-    """Sensor with device class/unit/state class, used for container stats."""
+    """Sensor with a fixed device class/unit/state class, used for resource stats."""
 
     def __init__(
         self,
@@ -136,13 +136,11 @@ class KomodoStatSensor(KomodoSensor):
         unit_of_measurement=None,
         state_class=None,
         icon=None,
-        formatter=None,
     ) -> None:
         """Initialize the stat sensor.
 
-        ``formatter`` is an optional callable ``(raw) -> (value, unit)`` that
-        turns the raw extractor value into a display value + unit (used for
-        human-readable MB/GB sizing).
+        The unit of measurement is set once and never changes at runtime, so
+        Home Assistant's long-term statistics for these sensors stay stable.
         """
         super().__init__(
             item_id=item_id,
@@ -153,7 +151,6 @@ class KomodoStatSensor(KomodoSensor):
         )
         self._attr_has_entity_name = False
         self._attr_name = name
-        self._formatter = formatter
         if device_class is not None:
             self._attr_device_class = device_class
         if unit_of_measurement is not None:
@@ -162,22 +159,3 @@ class KomodoStatSensor(KomodoSensor):
             self._attr_state_class = state_class
         if icon is not None:
             self._attr_icon = icon
-        self._apply_formatter()
-
-    def _apply_formatter(self) -> None:
-        """Extract the raw value and (optionally) format it for display."""
-        raw = self._extractor(self.coordinator.data)
-        if self._formatter is not None:
-            value, unit = self._formatter(raw)
-            self._attr_native_value = value
-            if unit is not None:
-                self._attr_native_unit_of_measurement = unit
-        else:
-            self._attr_native_value = raw
-
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        self._apply_formatter()
-        _LOGGER.debug("%s : %s", self._attr_unique_id, self._attr_native_value)
-        self.async_write_ha_state()
