@@ -1,13 +1,11 @@
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
+from homeassistant.const import UnitOfInformation
 from komodo_api.types import ServerState
 
 from ..const import DOMAIN
 from ..coordinator import KomodoCoordinator
-from ..data.stats import human_size
 from .common import KomodoOptionSensor, KomodoSensor, KomodoStatSensor
-
-_GIB = 1024 ** 3
 
 
 def _server_attr(server_id: str, attr: str):
@@ -17,17 +15,6 @@ def _server_attr(server_id: str, attr: str):
         if srv is None:
             return None
         return getattr(srv, a, None)
-    return extractor
-
-
-def _server_gb_bytes(server_id: str, attr: str):
-    """Create an extractor that converts a GB field to bytes."""
-    def extractor(data, sid=server_id, a=attr):
-        srv = data.get_server(sid)
-        if srv is None:
-            return None
-        value = getattr(srv, a, None)
-        return value * _GIB if value is not None else None
     return extractor
 
 
@@ -51,23 +38,23 @@ def _disk_perc(server_id: str):
     return extractor
 
 
-def _mem_free_bytes(server_id: str):
-    """Extractor for free memory in bytes (total - used)."""
+def _mem_free_gb(server_id: str):
+    """Extractor for free memory in GB (total - used)."""
     def extractor(data, sid=server_id):
         srv = data.get_server(sid)
         if srv is None or srv.mem_total_gb is None or srv.mem_used_gb is None:
             return None
-        return (srv.mem_total_gb - srv.mem_used_gb) * _GIB
+        return srv.mem_total_gb - srv.mem_used_gb
     return extractor
 
 
-def _disk_free_bytes(server_id: str):
-    """Extractor for free disk space in bytes (total - used)."""
+def _disk_free_gb(server_id: str):
+    """Extractor for free disk space in GB (total - used)."""
     def extractor(data, sid=server_id):
         srv = data.get_server(sid)
         if srv is None or srv.disk_total_gb is None or srv.disk_used_gb is None:
             return None
-        return (srv.disk_total_gb - srv.disk_used_gb) * _GIB
+        return srv.disk_total_gb - srv.disk_used_gb
     return extractor
 
 
@@ -196,28 +183,28 @@ def create_server_sensors(
             KomodoStatSensor(
                 coordinator=coordinator,
                 item_id=item_id,
-                extractor=_server_gb_bytes(server.id, "mem_used_gb"),
+                extractor=_server_attr(server.id, "mem_used_gb"),
                 key="server_memory_used",
                 device_info=device_info,
                 name="Memory Used",
                 device_class=SensorDeviceClass.DATA_SIZE,
+                unit_of_measurement=UnitOfInformation.GIGABYTES,
                 state_class=SensorStateClass.MEASUREMENT,
                 icon="mdi:memory",
-                formatter=human_size,
             )
         )
         sensors.append(
             KomodoStatSensor(
                 coordinator=coordinator,
                 item_id=item_id,
-                extractor=_server_gb_bytes(server.id, "mem_total_gb"),
+                extractor=_server_attr(server.id, "mem_total_gb"),
                 key="server_memory_total",
                 device_info=device_info,
                 name="Memory Total",
                 device_class=SensorDeviceClass.DATA_SIZE,
+                unit_of_measurement=UnitOfInformation.GIGABYTES,
                 state_class=SensorStateClass.MEASUREMENT,
                 icon="mdi:memory",
-                formatter=human_size,
             )
         )
         sensors.append(
@@ -238,75 +225,57 @@ def create_server_sensors(
             KomodoStatSensor(
                 coordinator=coordinator,
                 item_id=item_id,
-                extractor=_server_gb_bytes(server.id, "disk_used_gb"),
+                extractor=_server_attr(server.id, "disk_used_gb"),
                 key="server_disk_used",
                 device_info=device_info,
                 name="Disk Used",
                 device_class=SensorDeviceClass.DATA_SIZE,
+                unit_of_measurement=UnitOfInformation.GIGABYTES,
                 state_class=SensorStateClass.MEASUREMENT,
                 icon="mdi:harddisk",
-                formatter=human_size,
             )
         )
         sensors.append(
             KomodoStatSensor(
                 coordinator=coordinator,
                 item_id=item_id,
-                extractor=_server_gb_bytes(server.id, "disk_total_gb"),
+                extractor=_server_attr(server.id, "disk_total_gb"),
                 key="server_disk_total",
                 device_info=device_info,
                 name="Disk Total",
                 device_class=SensorDeviceClass.DATA_SIZE,
+                unit_of_measurement=UnitOfInformation.GIGABYTES,
                 state_class=SensorStateClass.MEASUREMENT,
                 icon="mdi:harddisk",
-                formatter=human_size,
             )
         )
         sensors.append(
             KomodoStatSensor(
                 coordinator=coordinator,
                 item_id=item_id,
-                extractor=_mem_free_bytes(server.id),
+                extractor=_mem_free_gb(server.id),
                 key="server_memory_free",
                 device_info=device_info,
                 name="Memory Free",
                 device_class=SensorDeviceClass.DATA_SIZE,
+                unit_of_measurement=UnitOfInformation.GIGABYTES,
                 state_class=SensorStateClass.MEASUREMENT,
                 icon="mdi:memory",
-                formatter=human_size,
             )
         )
         sensors.append(
             KomodoStatSensor(
                 coordinator=coordinator,
                 item_id=item_id,
-                extractor=_disk_free_bytes(server.id),
+                extractor=_disk_free_gb(server.id),
                 key="server_disk_free",
                 device_info=device_info,
                 name="Disk Free",
                 device_class=SensorDeviceClass.DATA_SIZE,
+                unit_of_measurement=UnitOfInformation.GIGABYTES,
                 state_class=SensorStateClass.MEASUREMENT,
                 icon="mdi:harddisk",
-                formatter=human_size,
             )
         )
-        for key, attr, label, icon in (
-            ("server_network_ingress", "network_ingress_bytes", "Network Ingress", "mdi:arrow-down-bold"),
-            ("server_network_egress", "network_egress_bytes", "Network Egress", "mdi:arrow-up-bold"),
-        ):
-            sensors.append(
-                KomodoStatSensor(
-                    coordinator=coordinator,
-                    item_id=item_id,
-                    extractor=_server_attr(server.id, attr),
-                    key=key,
-                    device_info=device_info,
-                    name=label,
-                    device_class=SensorDeviceClass.DATA_SIZE,
-                    state_class=SensorStateClass.MEASUREMENT,
-                    icon=icon,
-                    formatter=human_size,
-                )
-            )
 
     return sensors

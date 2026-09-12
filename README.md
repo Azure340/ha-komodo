@@ -19,14 +19,11 @@ monitoring and release links.
 
 ### Per-container (per-service) stat sensors
 
-Every stack device gains six stat sensors per running service container:
+Every stack device gains three stat sensors per running service container:
 
 - CPU Usage (%)
 - Memory Usage (%)
-- Memory Used
-- Network Ingress
-- Network Egress
-- PIDs
+- Memory Used (MB)
 
 Stopped containers report `unknown`.
 
@@ -38,7 +35,13 @@ Every server device reports:
 - CPU Load 1m / 5m / 15m
 - Memory Usage (%), Memory Used, Memory Total, Memory Free
 - Disk Usage (%), Disk Used, Disk Total, Disk Free
-- Network Ingress, Network Egress
+
+### Fixed units for stable statistics
+
+All memory and disk values use **fixed units** — container memory in MB, server
+memory and disk in GB — so Home Assistant's long-term statistics stay stable.
+The display unit can be changed per entity in Home Assistant, which converts the
+values for you.
 
 ### Release links on update entities
 
